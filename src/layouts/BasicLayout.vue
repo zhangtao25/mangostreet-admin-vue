@@ -1,178 +1,129 @@
 <template>
-  <a-layout :class="['layout', device]">
-    <!-- SideMenu -->
-    <a-drawer
-      v-if="isMobile()"
-      placement="left"
-      :wrapClassName="`drawer-sider ${navTheme}`"
-      :closable="false"
-      :visible="collapsed"
-      @close="drawerClose"
-    >
-      <side-menu
-        mode="inline"
-        :menus="menus"
-        :theme="navTheme"
-        :collapsed="false"
-        :collapsible="true"
-        @menuSelect="menuSelect"
-      ></side-menu>
-    </a-drawer>
+    <a-layout id="components-layout-demo-side" style="min-height: 100vh" >
+        <a-layout-sider
+                collapsible
+                v-model="collapsed"
+                :width="256"
+                style="box-shadow: 2px 0 6px rgba(0,21,41,.35);"
+        >
+            <div class="logo-wrap">
+                <img src="~@/assets/logo.svg" class="logo" alt="logo">
+                <h1>mangostreet</h1>
+            </div>
+            <a-menu theme="dark"  :defaultSelectedKeys="defaultSelectedKeys" :openKeys.sync="openKeys" mode="inline" @click="onClickMenu">
 
-    <side-menu
-      v-else-if="isSideMenu()"
-      mode="inline"
-      :menus="menus"
-      :theme="navTheme"
-      :collapsed="collapsed"
-      :collapsible="true"
-    ></side-menu>
+                <a-sub-menu
+                        key="/note">
+                    <span slot="title"><a-icon type="team" /><span>笔记</span></span>
+                    <a-menu-item key="/note/list">列表</a-menu-item>
+                    <a-menu-item key="/note/detail">详情</a-menu-item>
+                </a-sub-menu>
 
-    <a-layout :class="[layoutMode, `content-width-${contentWidth}`]" :style="{ paddingLeft: contentPaddingLeft, minHeight: '100vh' }">
-      <!-- layout header -->
-      <global-header
-        :mode="layoutMode"
-        :menus="menus"
-        :theme="navTheme"
-        :collapsed="collapsed"
-        :device="device"
-        @toggle="toggle"
-      />
+                <a-sub-menu
+                        key="/user">
+                    <span slot="title"><a-icon type="team" /><span>用户</span></span>
+                    <a-menu-item key="/user/list">列表</a-menu-item>
+                    <a-menu-item key="/user/detail">详情</a-menu-item>
+                </a-sub-menu>
 
-      <!-- layout content -->
-      <a-layout-content :style="{ height: '100%', margin: '24px 24px 0', paddingTop: fixedHeader ? '64px' : '0' }">
-        <multi-tab v-if="multiTab"></multi-tab>
-        <transition name="page-transition">
-          <route-view />
-        </transition>
-      </a-layout-content>
 
-      <!-- layout footer -->
-      <a-layout-footer>
-        <global-footer />
-      </a-layout-footer>
 
-      <!-- Setting Drawer (show in development mode) -->
-      <setting-drawer v-if="!production"></setting-drawer>
+            </a-menu>
+        </a-layout-sider>
+        <a-layout>
+            <a-layout-header style="background: #fff; padding: 0;box-shadow: 0 1px 4px rgba(0,21,41,.08);" />
+            <a-layout-content style="margin: 0 16px">
+                <a-breadcrumb style="margin: 16px 0">
+                    <a-breadcrumb-item v-for="(item,index) of routeMatchs" :key="index" v-if="index !==0 ">
+                        {{item['meta']['title']}}
+                    </a-breadcrumb-item>
+                </a-breadcrumb>
+                <div style="border-radius: 2px" :style="{ padding: '24px', background: '#fff', minHeight: '360px' }">
+                    <router-view/>
+                </div>
+            </a-layout-content>
+            <a-layout-footer style="text-align: center">
+                mangostreet ©2020 Created by zhangwenrou
+            </a-layout-footer>
+        </a-layout>
     </a-layout>
-  </a-layout>
-
 </template>
-
 <script>
-import { triggerWindowResizeEvent } from '@/utils/util'
-import { mapState, mapActions } from 'vuex'
-import { mixin, mixinDevice } from '@/utils/mixin'
-import config from '@/config/defaultSettings'
+    export default {
+        data() {
+            return {
+                collapsed: false,
+                routeMatchs:[],
+                openKeys:[''],
+                defaultSelectedKeys:['']
+            }
+        },
+        methods:{
+            onClickMenu({ item, key, keyPath }){
+                this.$router.push({path:key})
+            },
+            getRouteMeta(route){
+                console.log(route)
 
-import RouteView from './RouteView'
-import SideMenu from '@/components/Menu/SideMenu'
-import GlobalHeader from '@/components/GlobalHeader'
-import GlobalFooter from '@/components/GlobalFooter'
-import SettingDrawer from '@/components/SettingDrawer'
+                // 设置面包屑
+                let routeMatchs = route.matched
+                this.routeMatchs = []
+                for (let i = 0; i < routeMatchs.length; i++) {
+                    this.routeMatchs.push(routeMatchs[i])
+                }
 
-import { asyncRouterMap, constantRouterMap } from '@/config/router.config'
-
-export default {
-  name: 'BasicLayout',
-  mixins: [mixin, mixinDevice],
-  components: {
-    RouteView,
-    SideMenu,
-    GlobalHeader,
-    GlobalFooter,
-    SettingDrawer
-  },
-  data () {
-    return {
-      production: config.production,
-      collapsed: false,
-      menus: []
+                // 设置展开一级菜单
+                this.openKeys[0] = this.routeMatchs[1].path
+                // 设置二级选中菜单
+                this.defaultSelectedKeys[0] = this.routeMatchs[2].path
+            }
+        },
+        mounted() {
+            this.getRouteMeta(this.$route);
+        },
+        watch:{
+            '$route':{
+                deep:true,
+                handler:function (newVal,oldVal) {
+                    console.log(newVal,oldVal)
+                    this.getRouteMeta(this.$route);
+                }
+            }
+        }
     }
-  },
-  computed: {
-    ...mapState({
-      // 动态主路由
-      mainMenu: state => state.permission.addRouters
-    }),
-    contentPaddingLeft () {
-      if (!this.fixSidebar || this.isMobile()) {
-        return '0'
-      }
-      if (this.sidebarOpened) {
-        return '256px'
-      }
-      return '80px'
-    }
-  },
-  watch: {
-    sidebarOpened (val) {
-      this.collapsed = !val
-    }
-  },
-  created () {
-    // this.menus = this.mainMenu.find(item => item.path === '/').children
-    // console.log(this.menus,11111)
-    this.menus = asyncRouterMap[0]['children']
-    this.collapsed = !this.sidebarOpened
-  },
-  mounted () {
-    const userAgent = navigator.userAgent
-    if (userAgent.indexOf('Edge') > -1) {
-      this.$nextTick(() => {
-        this.collapsed = !this.collapsed
-        setTimeout(() => {
-          this.collapsed = !this.collapsed
-        }, 16)
-      })
-    }
-  },
-  methods: {
-    ...mapActions(['setSidebar']),
-    toggle () {
-      this.collapsed = !this.collapsed
-      this.setSidebar(!this.collapsed)
-      triggerWindowResizeEvent()
-    },
-    paddingCalc () {
-      let left = ''
-      if (this.sidebarOpened) {
-        left = this.isDesktop() ? '256px' : '80px'
-      } else {
-        left = (this.isMobile() && '0') || ((this.fixSidebar && '80px') || '0')
-      }
-      return left
-    },
-    menuSelect () {
-    },
-    drawerClose () {
-      this.collapsed = false
-    }
-  }
-}
 </script>
 
-<style lang="less">
-/*
- * The following styles are auto-applied to elements with
- * transition="page-transition" when their visibility is toggled
- * by Vue.js.
- *
- * You can easily play with the page transition by editing
- * these styles.
- */
+<style>
 
-.page-transition-enter {
-  opacity: 0;
-}
+    .ant-layout-sider.ant-layout-sider-dark.ant-layout-sider-has-trigger{
+        /*background-color: skyblue;*/
+    }
+    #components-layout-demo-side .logo-wrap {
+        /*height: 32px;*/
+        /*background: rgba(255,255,255,.2);*/
+        background-color: rgb(4,33,62);
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        /*justify-content: center;*/
+    }
 
-.page-transition-leave-active {
-  opacity: 0;
-}
 
-.page-transition-enter .page-transition-container,
-.page-transition-leave-active .page-transition-container {
-  -webkit-transform: scale(1.1);
-  transform: scale(1.1);
-}
+    #components-layout-demo-side .logo-wrap h1{
+        color: #fff;
+        font-size: 20px;
+        margin: 0 0 0 12px;
+        font-family: Avenir,Helvetica Neue,Arial,Helvetica,sans-serif;
+        font-weight: 600;
+        vertical-align: middle;
+        /*line-height: 200px;*/
+    }
+
+
+    .logo{
+        height: 32px;
+        /*vertical-align: top;*/
+        /*margin-right: 16px;*/
+        border-style: none;
+    }
 </style>
