@@ -59,6 +59,33 @@ export const asyncRouterMap = [
           }
         ]
       },
+      {
+        path: '/public',
+        name: 'public',
+        component: PageView,
+        redirect: '/public/build',
+        meta: { title: '发布', icon: 'table', permission: [ 'table' ] },
+        children: [
+          {
+            path: '/public/build',
+            name: 'build',
+            component: () => import('@/views/public/build/index'),
+            meta: { title: '构建', permission: [ 'profile' ] }
+          },
+          {
+            path: '/public/terminal',
+            name: 'terminal',
+            component: () => import('@/views/public/terminal/index'),
+            meta: { title: '终端', permission: [ 'profile' ] }
+          },
+          {
+            path: '/public/docker',
+            name: 'docker',
+            component: () => import('@/views/public/docker/index'),
+            meta: { title: 'docker', permission: [ 'profile' ] }
+          },
+        ]
+      },
     ]
   },
   {
