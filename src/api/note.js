@@ -2,7 +2,11 @@ import axios from 'axios'
 
 function test() {
   return new Promise((resolve, reject) => {
-    resolve("123")
+    axios.get('/api/note').then(res=>{
+      console.log(res)
+      resolve(res)
+    })
+
   })
 }
 
